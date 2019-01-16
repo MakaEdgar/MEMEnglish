@@ -220,7 +220,7 @@ std::vector<Word> training(std::vector<Word>& dict, std::string mistake_filename
 
 	system("cls");
 	std::wcout << L"Congradulations! ";
-	std::sort(dict_done.begin(), dict_done.end(), [&](auto a, auto b) {return a.err_this > b.err_this; });
+	std::sort(dict_done.begin(), dict_done.end(), [](auto &a, auto &b) {return a.err_this > b.err_this; });
 
 	//write errors to mistakes_file
 	std::wofstream fout(mistake_filename, std::ios_base::binary);
@@ -267,6 +267,10 @@ std::vector<Word> training(std::vector<Word>& dict, std::string mistake_filename
 	std::wcout << (100 * (dict_done.size() - wrong_count_in_done)) / words << L"% ";
 	std::wcout << L"Quality percent and " << points << L" Points (of " << (19 + words) * words / 2 << L")\n";
 	std::wcout << L"Your time is " << mins << L"m " << secs << L"s\n";
+
+	std::sort(dict_done.begin(), dict_done.end(), [](auto &a, auto &b) {double c1 = (a.err * 1.0 / a.run);
+																	    double c2 = (b.err * 1.0 / b.run);
+																	    return (c1 == c2) ? (a.err > b.err) : (c1 > c2); });
 
 	return dict_done;
 }
