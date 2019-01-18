@@ -237,7 +237,7 @@ std::vector<Word> training(std::vector<Word>& dict, std::wstring& dictname,  int
 	int wrong_count = 0;
 	int wrong_count_in_done = 0;
 	int not_used = 0;
-	fout << L"Your mistakes from last training.\r\n";
+	fout << L"Your mistakes from last training " << wdate << L".\r\n";
 	fout << L"Wrong Answers\tWord\tTranslation\r\n";
 	for (size_t i = 0; i != dict_done.size(); i++) {
 		dict_done[i].last_date = wdate;
@@ -343,7 +343,7 @@ int main()
 		std::vector<Word> dict_done = training(dict, dictname , train_cnt);
 
 		//update statistics in dict
-		if ((train_cnt == 2) && (dict_done.size() != 0)) {
+		if ((train_cnt == 1) && (dict_done.size() != 0)) {
 
 			//write dict with updated statictics
 			std::wofstream fout(L"DICT/" + dictname + L".txt", std::ios_base::binary);
