@@ -120,7 +120,7 @@ std::vector<Word> openDict(std::wstring dictname) {
 
 
 //train words
-std::vector<Word> training(std::vector<Word>& dict, std::string mistake_filename) {
+std::vector<Word> training(std::vector<Word>& dict, std::wstring& dictname,  int train_cnt) {
 	std::wcout << L"Ok! There are " << dict.size() << L" words in your dict!\n";
 
 
@@ -148,6 +148,7 @@ std::vector<Word> training(std::vector<Word>& dict, std::string mistake_filename
 	start_time = std::chrono::system_clock::now();
 	int mins = 0;
 	int secs = 0;
+	int num_symbols = 0;
 
 	//main cycle
 	while ((dict.size() != 0) && (user_input != L"!exit")) {
@@ -174,7 +175,7 @@ std::vector<Word> training(std::vector<Word>& dict, std::string mistake_filename
 		std::wcout << dict[wordnum].rus << L"\n";
 		std::getline(std::wcin, user_input);
 		user_input = trim(user_input);
-
+		num_symbols += user_input.size();
 
 		if (user_input == L"!next") {
 			wrong_last_word = false;
@@ -218,12 +219,16 @@ std::vector<Word> training(std::vector<Word>& dict, std::string mistake_filename
 		std::getline(std::wcin, temp);
 	}
 
-	system("cls");
-	std::wcout << L"Congradulations! ";
-	std::sort(dict_done.begin(), dict_done.end(), [](auto &a, auto &b) {return a.err_this > b.err_this; });
+	//create actual date
+	std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	std::string s(30, '\0');
+	std::strftime(&s[0], s.size(), "%d.%m.%Y", std::localtime(&now));
+	std::wstring wdate = std::wstring(s.begin(), s.begin() + 10);
 
+	
 	//write errors to mistakes_file
-	std::wofstream fout(mistake_filename, std::ios_base::binary);
+	std::sort(dict_done.begin(), dict_done.end(), [](auto &a, auto &b) {return a.err_this > b.err_this; }); //sort dict by errors in this training
+	std::wofstream fout("mistakes_" + std::to_string(train_cnt) + ".txt", std::ios_base::binary);
 	fout.imbue(std::locale(fout.getloc(),				//set file encoding as UCS-2 LE
 		new std::codecvt_utf16<wchar_t, 0x10ffff, std::little_endian>));
 	unsigned char bom[] = { 0xFF,0xFE };
@@ -235,6 +240,7 @@ std::vector<Word> training(std::vector<Word>& dict, std::string mistake_filename
 	fout << L"Your mistakes from last training.\r\n";
 	fout << L"Wrong Answers\tWord\tTranslation\r\n";
 	for (size_t i = 0; i != dict_done.size(); i++) {
+		dict_done[i].last_date = wdate;
 		if (dict_done[i].err_this != 0) {
 			fout << dict_done[i].err_this << L"\t";
 			fout << dict_done[i].eng << L"\t";
@@ -245,6 +251,7 @@ std::vector<Word> training(std::vector<Word>& dict, std::string mistake_filename
 	}
 	for (size_t i = 0; i != dict.size(); i++) {
 		if (dict[i].err_this != 0) {
+			dict[i].last_date = wdate;
 			fout << dict[i].err_this << L"\t";
 			fout << dict[i].eng << L"\t";
 			fout << dict[i].rus << L"\r\n";
@@ -256,22 +263,44 @@ std::vector<Word> training(std::vector<Word>& dict, std::string mistake_filename
 	}
 	fout.close();
 
-
+	//write statistics of this game on screen
 	system("cls");
 	int words = dict_done.size() + dict.size();
 	std::wcout << L"Congradulations! You remember ";
 	std::wcout << (dict_done.size() - wrong_count_in_done) << " ";
 	std::wcout << L"of " << (words - not_used) << " words!\t";
 	std::wcout << wrong_count << L" is wrong!\n";
-
 	std::wcout << (100 * (dict_done.size() - wrong_count_in_done)) / words << L"% ";
 	std::wcout << L"Quality percent and " << points << L" Points (of " << (19 + words) * words / 2 << L")\n";
 	std::wcout << L"Your time is " << mins << L"m " << secs << L"s\n";
+	std::wcout << L"Your speed is " << floor(num_symbols / (mins + secs*1.0/60)) << L" sym/min\n";
 
+
+
+
+	//write this training to history file
+	if (train_cnt == 1) {
+		std::wofstream fout_hist("history.txt", std::ios_base::binary | std::ios_base::app);
+		fout_hist.imbue(std::locale(fout.getloc(),				//set file encoding as UCS-2 LE
+			new std::codecvt_utf16<wchar_t, 0x10ffff, std::little_endian>));
+		fout_hist << wdate << L"\t";
+		fout_hist << dictname << L"\t";
+		fout_hist << words << L"\t";
+		fout_hist << points << L"\t";
+		fout_hist << (100 * (dict_done.size() - wrong_count_in_done)) / words << L"%\t";
+		fout_hist << mins << L"m" << secs << L"s\t";
+		fout_hist << floor(num_symbols / (mins + secs * 1.0 / 60)) << L"\t";
+		fout_hist << (dict_done.size() - wrong_count_in_done) << L"\t";
+		fout_hist << wrong_count << L"\t";
+		fout_hist << not_used << L"\r\n";
+		fout_hist.close();	
+	}
+	
+
+	//return dict with done words sorted by errors in all time
 	std::sort(dict_done.begin(), dict_done.end(), [](auto &a, auto &b) {double c1 = (a.err * 1.0 / a.run);
 																	    double c2 = (b.err * 1.0 / b.run);
 																	    return (c1 == c2) ? (a.err > b.err) : (c1 > c2); });
-
 	return dict_done;
 }
 
@@ -307,17 +336,14 @@ int main()
 
 	//Train words
 	bool need_train = true;
-	int cnt = 1;
+	int train_cnt = 0;
 	while (need_train) {
 		//train
-		std::vector<Word> dict_done = training(dict, "mistakes_" + std::to_string(cnt++) + ".txt");
+		train_cnt++;
+		std::vector<Word> dict_done = training(dict, dictname , train_cnt);
 
 		//update statistics in dict
-		if ((cnt == 2) && (dict_done.size() != 0)) {
-			std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-			std::string s(30, '\0');
-			std::strftime(&s[0], s.size(), "%d.%m.%Y", std::localtime(&now));
-			std::wstring wdate = std::wstring(s.begin(), s.begin() + 10);
+		if ((train_cnt == 2) && (dict_done.size() != 0)) {
 
 			//write dict with updated statictics
 			std::wofstream fout(L"DICT/" + dictname + L".txt", std::ios_base::binary);
@@ -329,7 +355,7 @@ int main()
 			for (size_t i = 0; i != dict_done.size(); i++) {
 				fout << dict_done[i].eng << L"\t";
 				fout << dict_done[i].rus << L"\t";
-				fout << wdate << L"\t";
+				fout << dict_done[i].last_date << L"\t";
 				fout << dict_done[i].run << L"\t";
 				fout << dict_done[i].err << L"\r\n";
 			}
@@ -342,7 +368,6 @@ int main()
 			}
 			fout.close();
 
-
 			//write errors to last_mistakes dict
 			std::wofstream fout2(L"DICT/Last_Mistakes.txt", std::ios_base::binary);
 			fout2.imbue(std::locale(fout2.getloc(),				//set file encoding as UCS-2 LE
@@ -352,7 +377,7 @@ int main()
 				if (dict_done[i].err_this != 0) {
 					fout2 << dict_done[i].eng << L"\t";
 					fout2 << dict_done[i].rus << L"\t";
-					fout2 << wdate << L"\t";
+					fout2 << dict_done[i].last_date << L"\t";
 					fout2 << dict_done[i].run << L"\t";
 					fout2 << dict_done[i].err << L"\r\n";
 				}
@@ -361,17 +386,15 @@ int main()
 				if (dict[i].err_this != 0) {
 					fout2 << dict[i].eng << L"\t";
 					fout2 << dict[i].rus << L"\t";
-					fout2 << wdate << L"\t";
+					fout2 << dict_done[i].last_date << L"\t";
 					fout2 << dict[i].run << L"\t";
 					fout2 << dict[i].err << L"\r\n";
 				}
 			}
 			fout2.close();
-
-
 		}
 
-		//collect error words to dict
+		//collect error words to new dict
 		std::vector<Word> dict_err;
 		for (size_t i = 0; i != dict.size(); i++) {
 			if (dict[i].err_this != 0) {
