@@ -24,7 +24,7 @@ class Word {
 public:
 	std::wstring eng = L"";
 	std::wstring rus = L"";
-	std::wstring last_date = std::wstring(15, L'A');
+	std::wstring last_date = std::wstring(15, L'\0');
 	int run = 0;						//runs in all times
 	int err = 0;						//errors in all times
 	int err_this = 0;					//errors in this time
@@ -182,6 +182,13 @@ std::vector<Word> training(std::vector<Word>& dict, std::wstring& dictname,  int
 			right_words_in_a_row = 0;
 			continue;
 		}
+
+		if (user_input == L"!exit") {
+			dict[wordnum].run += 1;
+			dict[wordnum].err += 1;
+		}
+
+
 
 		//check if answer is correct
 		if (user_input == dict[wordnum].eng) {
@@ -360,11 +367,17 @@ int main()
 				fout << dict_done[i].err << L"\r\n";
 			}
 			for (size_t i = 0; i != dict.size(); i++) {
-				fout << dict[i].eng << L"\t";
-				fout << dict[i].rus << L"\t";
-				fout << dict[i].last_date << L"\t";
-				fout << dict[i].run << L"\t";
-				fout << dict[i].err << L"\r\n";
+				if (dict[i].run != 0) {
+					fout << dict[i].eng << L"\t";
+					fout << dict[i].rus << L"\t";
+					fout << dict[i].last_date << L"\t";
+					fout << dict[i].run << L"\t";
+					fout << dict[i].err << L"\r\n";
+				}
+				else {
+					fout << dict[i].eng << L"\t";
+					fout << dict[i].rus << L"\r\n";
+				}
 			}
 			fout.close();
 
