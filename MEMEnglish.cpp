@@ -299,7 +299,11 @@ std::vector<Word> training(std::vector<Word>& dict, std::wstring& dictname,  int
 		fout_hist << floor(num_symbols / (mins + secs * 1.0 / 60)) << L"\t";
 		fout_hist << (dict_done.size() - wrong_count_in_done) << L"\t";
 		fout_hist << wrong_count << L"\t";
-		fout_hist << not_used << L"\r\n";
+		fout_hist << not_used;
+		if (increase_cnt_if_wrong) {
+			fout_hist << L"\thardmode";
+		}
+		fout_hist << L"\r\n";
 		fout_hist.close();	
 	}
 	
