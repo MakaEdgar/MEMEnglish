@@ -473,7 +473,6 @@ int main()
 				}
 			}
 			for (size_t i = 0; i != dict.size(); i++) {
-			for (size_t i = 0; i != dict.size(); i++) {
 				if (dict[i].err_this != 0) {
 					fout2 << dict[i].eng << L"\t";
 					fout2 << dict[i].rus << L"\t";
