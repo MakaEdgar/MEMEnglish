@@ -1,0 +1,2 @@
+History of trainings.
+date	dict_name	words	points	quality	time	speed, sym/min	right	errors	not_used_words	comment
